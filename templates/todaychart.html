@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <title>Today's Temperatures</title>
+
+    <link href='https://cdnjs.cloudflare.com/ajax/libs/metrics-graphics/2.15.6/metricsgraphics.css' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+
+    <script type = "text/javascript" src = "https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+    <script type = "text/javascript" src="https://d3js.org/d3.v4.min.js"></script>
+    <script type = "text/javascript" src = "https://cdnjs.cloudflare.com/ajax/libs/metrics-graphics/2.15.6/metricsgraphics.js"></script>
+
+    <script type="text/javascript">
+
+        var numberOfSamples = '200';
+
+        function drawChart(dataURL, targetTag) {
+            // use d3 library to load chart data in JSON format
+            d3.json(dataURL, function(data) {
+
+                // now need to convert the dates for the charting package
+                var dataItemCount = data.length;
+                for (var i = 0; i < dataItemCount; i++) {
+                    var dataItem = data[i];
+                    var dateObject = new Date(Date.parse(dataItem.isodatetime));
+                    dataItem.date = dateObject;
+                }
+
+                // size chart window width to browers viewport width
+                var viewportWidth  = document.documentElement.clientWidth;
+
+                //data = MG.convert.date(data, 'date');
+                MG.data_graphic({
+                    title: "Temperature Measurements Sensor - " + dataURL,
+                    description: "This graphic shows temperature measurements",
+                    data: data,
+                    area: false,
+                    width: viewportWidth - 16,
+                    height: 200,
+                    target: targetTag,
+                    x_accessor: 'date',
+                    y_accessor: 'value'
+                });
+            });
+        }
+
+        function drawCharts(numberOfSamples) {
+            drawChart('/datapoints/1/' + numberOfSamples, "#sensor1Chart");
+            drawChart('/datapoints/2/' + numberOfSamples, "#sensor2Chart");
+            drawChart('/datapoints/3/' + numberOfSamples, "#sensor3Chart");
+        };
+
+        function updateCurrentTemperature() {
+            for (var i = 1; i < 4; i++) {
+                let s = i.toString();
+                $.getJSON('/datapoint/' + s, function(d) {
+                    var tag = '#currentTemp' + s;
+                    $(tag).html(d.value);
+                    $(currentLastUpdated).html(d.time);
+              });
+            };
+        };
+
+        $(document).ready(function(){
+
+            $('#inputNumberSamples').val(numberOfSamples);
+
+            updateCurrentTemperature()
+
+            numberOfSamples = $('#inputNumberSamples').val();
+            console.log(numberOfSamples);
+
+            $('#reloadCharts').click(function(){
+                console.log("Reload charts");
+                numberOfSamples = $('#inputNumberSamples').val();
+                updateCurrentTemperature()
+                drawCharts(numberOfSamples);
+            });
+
+            drawCharts(numberOfSamples);
+        });
+
+    </script>
+
+</head>
+<body>
+
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <a class="navbar-brand" href="#">WebThermo</a>
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+
+  <div class="collapse navbar-collapse" id="navbarSupportedContent">
+    <ul class="navbar-nav mr-auto">
+      <li class="nav-item active">
+        <a class="nav-link" href="/">Home <span class="sr-only">(current)</span></a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="/log">Logs</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#">Refresh</a>
+      </li>
+    </ul>
+    <form class="form-inline my-2 my-lg-0">
+      <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
+      <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+    </form>
+  </div>
+</nav>
+
+<h2>Current Temperature</h2>
+
+<table class="table table-primary">
+    <style>.nobr { white-space: nowrap }</style>
+    <tr>
+        <td td class=nobr>Last Updated: <span id="currentLastUpdated">12:34:56</span></td>
+        <td td class=nobr>Sensor 1: <span id="currentTemp1"></span></td>
+        <td td class=nobr>Sensor 2: <span id="currentTemp2"></span></td>
+        <td td class=nobr>Sensor 3: <span id="currentTemp3"></span></td>
+    </tr>
+</table>
+
+<h2>Temperature Charts</h2>
+
+<form class="form-inline">
+  <div class="form-group mb-2">
+    <label for="chartParameters" class="sr-only">Chart Parameters</label>
+    <input type="text" readonly class="form-control-plaintext" id="numberSamples" value="Number Of Samples: ">
+  </div>
+  <div class="form-group mx-sm-3 mb-2">
+    <label for="numberSamples" class="sr-only">Number of Samples</label>
+    <input type="text" class="form-control" id="inputNumberSamples" placeholder="300">
+  </div>
+
+    <input type="button" id="reloadCharts" value="Update Charts"">
+</form>
+
+    <div id="sensor1Chart"></div><p>
+    <div id="sensor2Chart"></div><p>
+    <div id="sensor3Chart"></div><p>
+</body>
+</html>
